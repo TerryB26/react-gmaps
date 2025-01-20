@@ -51,7 +51,7 @@ const Sidebar = () => {
 
             ].map((item, index) => (
               <ListItem
-                button
+                button={true}
                 key={item.text}
                 onClick={() => handleNavigation(item.path)}
                 sx={{

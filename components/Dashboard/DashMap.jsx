@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PageHeader from "@/components/General/PageHeader";
-import { Box, Paper, TextField, Button, Typography, Card, CardContent, CardMedia, Grid, IconButton, Divider, CircularProgress } from "@mui/material";
+import { Box, Paper, TextField, Button, Typography, Card, CardContent, CardMedia, Grid, IconButton, CircularProgress } from "@mui/material";
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import Dialog from '@/components/General/Dialog';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -27,6 +27,25 @@ const DashMap = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (inputRef.current && window.google) {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+        types: ['(cities)'],
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry) {
+          setSearchValue(place.formatted_address);
+          setSelectedLocation(place.geometry.location);
+          map.panTo(place.geometry.location);
+          fetchPlaceDetails(place.place_id, place.geometry.location);
+        }
+      });
+    }
+  }, [map]);
 
   const onLoad = (mapInstance) => {
     setMap(mapInstance);
@@ -91,14 +110,14 @@ const DashMap = () => {
       console.error('Map instance is not loaded yet.');
       return;
     }
-
+  
     const service = new window.google.maps.places.PlacesService(map);
     const nearbyRequest = {
       location,
       radius: 2000,
       type: ['lodging', 'tourist_attraction', 'restaurant'],
     };
-
+  
     try {
       service.nearbySearch(nearbyRequest, (results, status) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK) {
@@ -114,14 +133,15 @@ const DashMap = () => {
 
   const handleMapClick = (event) => {
     const location = event.latLng;
-
+    console.log('Clicked location:', location);
+  
     const service = new window.google.maps.places.PlacesService(map);
     const request = {
       location,
       radius: 50,
       query: '',
     };
-
+  
     service.nearbySearch(request, (results, status) => {
       if (status === window.google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
         const place = results[0];
@@ -160,6 +180,7 @@ const DashMap = () => {
             fullWidth
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
+            inputRef={inputRef}
             style={{ marginRight: '10px' }}
             InputProps={{
               style: {
